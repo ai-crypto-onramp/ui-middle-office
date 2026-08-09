@@ -1,60 +1,55 @@
-import { loadConfig } from "@/config";
-import { classNames } from "@/utils";
+import { BrowserRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
+import { ToastProvider, useToast } from "@/context/ToastContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AppRoutes } from "@/routes";
+import { initTracing } from "@/lib/otel";
+import { wsClient, type QueueEvent } from "@/lib/websocket";
+import { useEffect } from "react";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false },
+  },
+});
+
+initTracing();
+
+function RealtimeToaster() {
+  const { toast } = useToast();
+  useEffect(() => {
+    const unsub = wsClient.subscribe((e: QueueEvent) => {
+      if (e.kind === "kyc.new") toast("New KYC application submitted", "info");
+      if (e.kind === "alert.new") toast("New AML alert received", "warning");
+      if (e.kind === "review.new") toast("New manual review item", "info");
+    });
+    return unsub;
+  }, [toast]);
+  return null;
+}
 
 export default function App() {
-  const config = loadConfig();
+  useEffect(() => {
+    wsClient.connect();
+    return () => wsClient.disconnect();
+  }, []);
+
   return (
-    <main style={{ padding: "2rem", maxWidth: 760, margin: "0 auto" }}>
-      <h1>Middle Office UI</h1>
-      <p style={{ color: "var(--muted)" }}>
-        Internal compliance and operations console for the crypto on-ramp.
-        Built with React (Vite SPA) consuming backend services via REST.
-      </p>
-
-      <section style={{ marginTop: "1.5rem" }}>
-        <h2>Console Modules</h2>
-        <ul style={{ lineHeight: 1.7 }}>
-          <li>KYC Review Console</li>
-          <li>AML / KYT Alert Desk</li>
-          <li>Policy / Risk Dashboard</li>
-          <li>User Management</li>
-          <li>Audit Log Explorer</li>
-        </ul>
-      </section>
-
-      <section style={{ marginTop: "1.5rem" }}>
-        <h2>Backend Services</h2>
-        <ul style={{ lineHeight: 1.7 }}>
-          <li>
-            identity-auth:{" "}
-            <code className={classNames("mono")}>{config.identityAuthUrl}</code>
-          </li>
-          <li>
-            onboarding-kyc:{" "}
-            <code className={classNames("mono")}>{config.onboardingKycUrl}</code>
-          </li>
-          <li>
-            aml-kyt: <code className={classNames("mono")}>{config.amlKytUrl}</code>
-          </li>
-          <li>
-            policy-risk-engine:{" "}
-            <code className={classNames("mono")}>{config.policyEngineUrl}</code>
-          </li>
-          <li>
-            fraud-detection:{" "}
-            <code className={classNames("mono")}>{config.fraudUrl}</code>
-          </li>
-          <li>
-            audit-event-log:{" "}
-            <code className={classNames("mono")}>{config.auditUrl}</code>
-          </li>
-        </ul>
-      </section>
-
-      <p style={{ marginTop: "1.5rem", color: "var(--muted)" }}>
-        Skeleton app. Modules will be added in subsequent stages — see{" "}
-        <code>PROJECT_PLAN.md</code>.
-      </p>
-    </main>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <BrowserRouter>
+                <RealtimeToaster />
+                <AppRoutes />
+              </BrowserRouter>
+            </AuthProvider>
+          </ToastProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

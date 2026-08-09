@@ -6,10 +6,17 @@ describe("loadConfig", () => {
     const c = loadConfig({} as Record<string, string | undefined>);
     expect(c.identityAuthUrl).toBe("http://identity-auth.internal:8080");
     expect(c.auditUrl).toBe("http://audit-event-log.internal:8080");
+    expect(c.mockMode).toBe(true);
   });
 
   it("overrides from env", () => {
     const c = loadConfig({ VITE_AUDIT_URL: "http://audit.example:9000" });
     expect(c.auditUrl).toBe("http://audit.example:9000");
+  });
+
+  it("parses mock flags", () => {
+    const c = loadConfig({ VITE_MOCK_MODE: "false", VITE_MOCK_AUTH: "true" });
+    expect(c.mockMode).toBe(false);
+    expect(c.mockAuth).toBe(true);
   });
 });

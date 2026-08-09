@@ -9,7 +9,16 @@ export type AppConfig = {
   auditUrl: string;
   otelEndpoint: string;
   sentryDsn: string;
+  mockMode: boolean;
+  mockAuth: boolean;
+  websocketUrl: string;
 };
+
+function bool(env: Record<string, string | undefined>, key: string, fallback = false): boolean {
+  const v = env[key];
+  if (v === undefined) return fallback;
+  return v === "true" || v === "1" || v === "yes";
+}
 
 export function loadConfig(env: Record<string, string | undefined> = import.meta.env): AppConfig {
   return {
@@ -21,5 +30,8 @@ export function loadConfig(env: Record<string, string | undefined> = import.meta
     auditUrl: env.VITE_AUDIT_URL ?? "http://audit-event-log.internal:8080",
     otelEndpoint: env.VITE_OTEL_ENDPOINT ?? "",
     sentryDsn: env.VITE_SENTRY_DSN ?? "",
+    mockMode: bool(env, "VITE_MOCK_MODE", true),
+    mockAuth: bool(env, "VITE_MOCK_AUTH", true),
+    websocketUrl: env.VITE_WEBSOCKET_URL ?? "",
   };
 }
