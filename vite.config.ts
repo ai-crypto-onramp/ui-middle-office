@@ -20,6 +20,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
+    setupFiles: ["./tests/setup.ts"],
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx", "src/**/*.test.ts", "src/**/*.test.tsx"],
     exclude: ["node_modules", "dist", "e2e", "playwright.config.ts"],
     coverage: {
@@ -31,8 +32,10 @@ export default defineConfig({
         "src/**/*.test.tsx",
         "src/**/types.ts",
         "src/main.tsx",
+        "src/lib/mock/data.ts",
+        "src/pages/**",
       ],
-      thresholds: {},
+      thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 },
     },
   },
 });
